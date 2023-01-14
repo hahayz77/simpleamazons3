@@ -1,18 +1,41 @@
 const express = require('express');
 const multer  = require('multer')
-const upload = multer({ dest: 'uploads/' })
-
+require('dotenv').config();
+const app = express();
 const port = 3000;
 
-const app = express();
 
-app.get('/', (req, res) => {
-  res.json({response:'Hello World!'})
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const client = new S3Client({ 
+    region: process.env.BUCKET_REGION,
+    credentials: {
+        accessKeyId: process.env.ACCESS_KEY, 
+        secretAccessKey: process.env.SECRET_ACCESS_KEY
+    }
 });
 
-app.post('/post', upload.single('file'), (req,res)=>{
+//If the storage option is here no data is written to disk but data is kept in a buffer accessible in the file object.
+const storage = multer.memoryStorage();
+const upload = multer({ dest: 'uploads/', storage: storage });
+
+
+app.get('/', (req, res) => {
+    res.json({response:'Hello World!'})
+});
+
+app.post('/post', upload.single('file'), async (req,res)=>{
     console.log(req.file);
-    res.send(req.body);
+    const key = `file${Math.random(1000)}`;
+    const params = {
+        Bucket: process.env.BUCKET_NAME,
+        ContentType: req.file.mimetype,
+        Body: req.file.buffer,
+        Key: key
+    };    
+    const command = new PutObjectCommand(params);
+    await client.send(command);
+
+    res.send(key);
 });
 
 app.listen(port, () => {
