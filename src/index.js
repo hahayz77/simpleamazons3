@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 const app = express();
 const port = 3000;
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 // DATABASE ####################
 const Image = require('./models/Image');
@@ -37,8 +38,15 @@ const upload = multer({
 });
 
 //App Routes ####################
-app.get('/', (req, res) => {
-    res.json({response:'Hello World!'})
+app.get('/', async (req, res) => {
+    let imageDB = await Image.find({});
+    // console.log(imagesDB);
+
+    for(i in imageDB){
+        let url = await getSignedUrl(client, new GetObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: imageDB[i].key }), { expiresIn: 60 });
+        imageDB[i].url = url;
+    }
+    res.send(imageDB);
 });
 
 app.post('/post', upload.single('file'), async (req,res) => {

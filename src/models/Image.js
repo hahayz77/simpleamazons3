@@ -8,6 +8,9 @@ const ImageSchema = new mongoose.Schema({
         type: String,
         unique: true
     },
+    url: {
+        type: String
+    },
     mimetype: {
         type: String
     },
