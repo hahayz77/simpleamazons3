@@ -1,5 +1,5 @@
 const express = require('express');
-const multer  = require('multer')
+const multer  = require('multer');
 require('dotenv').config();
 const app = express();
 const port = 3000;
@@ -25,7 +25,7 @@ app.get('/', (req, res) => {
 
 app.post('/post', upload.single('file'), async (req,res)=>{
     console.log(req.file);
-    const key = `file${Math.random(1000)}`;
+    const key = `${Date.now()}-${req.file.originalname}`;
     const params = {
         Bucket: process.env.BUCKET_NAME,
         ContentType: req.file.mimetype,
