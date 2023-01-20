@@ -1,8 +1,10 @@
 const express = require('express');
 const multer  = require('multer');
+var cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 const app = express();
+app.use(cors());
 const port = 3000;
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
