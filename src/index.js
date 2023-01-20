@@ -1,11 +1,17 @@
 const express = require('express');
 const multer  = require('multer');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const app = express();
 const port = 3000;
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
+// DATABASE ####################
+const Image = require('./models/Image');
 
+
+
+//Amazon S3 ####################
 const client = new S3Client({ 
     region: process.env.BUCKET_REGION,
     credentials: {
@@ -14,6 +20,7 @@ const client = new S3Client({
     }
 });
 
+//Multer ####################
 const storage = multer.memoryStorage();
 const upload = multer({ 
     dest: 'uploads/', 
@@ -29,12 +36,13 @@ const upload = multer({
     }
 });
 
+//App Routes ####################
 app.get('/', (req, res) => {
     res.json({response:'Hello World!'})
 });
 
 app.post('/post', upload.single('file'), async (req,res) => {
-    console.log(req.file);
+    // console.log(req.file);
     const key = `${Date.now()}-${req.file.originalname}`;
     const params = {
         Bucket: process.env.BUCKET_NAME,
@@ -42,6 +50,14 @@ app.post('/post', upload.single('file'), async (req,res) => {
         Body: req.file.buffer,
         Key: key
     };    
+    const imageToDB = await new Image({ 
+        name: req.file.originalname, 
+        key: key, 
+        mimetype: req.file.mimetype,
+        size: req.file.size
+    }).save();
+    // console.log(imageToDB);
+
     const command = new PutObjectCommand(params);
     await client.send(command);
 
