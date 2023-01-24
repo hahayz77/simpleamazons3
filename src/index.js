@@ -41,7 +41,7 @@ const upload = multer({
 
 //App Routes ####################
 app.get('/', async (req, res) => {
-    let imageDB = await Image.find({}).sort({time: 'desc'});
+    let imageDB = await Image.find({});
     
     for(i in imageDB){
         let url = await getSignedUrl(client, new GetObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: imageDB[i].key }), { expiresIn: 60 });
