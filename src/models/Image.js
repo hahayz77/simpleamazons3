@@ -16,6 +16,10 @@ const ImageSchema = new mongoose.Schema({
     },
     size: {
         type: Number
+    },
+    time: {
+        type: Date,
+        default: Date.now,
     }
 });
 

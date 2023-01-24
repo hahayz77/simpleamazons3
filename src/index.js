@@ -6,7 +6,7 @@ require('dotenv').config();
 const app = express();
 app.use(cors());
 const port = 3000;
-const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 // DATABASE ####################
@@ -41,13 +41,13 @@ const upload = multer({
 
 //App Routes ####################
 app.get('/', async (req, res) => {
-    let imageDB = await Image.find({});
-    // console.log(imagesDB);
-
+    let imageDB = await Image.find({}).sort({time: 'desc'});
+    
     for(i in imageDB){
         let url = await getSignedUrl(client, new GetObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: imageDB[i].key }), { expiresIn: 60 });
         imageDB[i].url = url;
     }
+    // console.log(imagesDB);
     res.send(imageDB);
 });
 
@@ -72,6 +72,24 @@ app.post('/post', upload.single('file'), async (req,res) => {
     await client.send(command);
 
     res.send(key);
+});
+
+app.delete('/post/:id', async(req, res)=>{
+    const imgFromDB = await Image.findOne({ _id: req.params.id });
+    if(imgFromDB){
+        const params = {
+            Bucket: process.env.BUCKET_NAME,
+            Key: imgFromDB.key
+        }; 
+        const command = new DeleteObjectCommand(params);
+        await client.send(command);
+        const imageFromDB = await Image.deleteOne({ _id: req.params.id });
+        
+        res.send(imageFromDB);
+    }else {
+        res.status(500).send("Image not found!");
+    }
+
 });
 
 app.listen(port, () => {
