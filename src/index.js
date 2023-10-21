@@ -1,96 +1,17 @@
-const express = require('express');
-const multer  = require('multer');
-var cors = require('cors');
-const mongoose = require('mongoose');
 require('dotenv').config();
+require('dotenv').config();
+const express = require('express');
+var cors = require('cors');
+const bodyParser = require('body-parser');
 const app = express();
 app.use(cors());
-const port = 3000;
-const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const port = 3001;
 
-// DATABASE ####################
-const Image = require('./models/Image');
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: false}));
+app.use('/admin', require('./routes/admin'));
 
-
-
-//Amazon S3 ####################
-const client = new S3Client({ 
-    region: process.env.BUCKET_REGION,
-    credentials: {
-        accessKeyId: process.env.ACCESS_KEY, 
-        secretAccessKey: process.env.SECRET_ACCESS_KEY
-    }
-});
-
-//Multer ####################
-const storage = multer.memoryStorage();
-const upload = multer({ 
-    dest: 'uploads/', 
-    storage: storage, //If the storage option is here no data is written to disk but data is kept in a buffer accessible in the file object.
-    limits: {fileSize: 2 * 1024 * 1024}, // Ex => 1 * 1024 * 1024 = 1MB
-    fileFilter: (req, file, cb) => {    // Image type permission
-        const allowedMimes = ['image/jpg', 'image/jpeg', 'image/png', 'image/gif'];
-        if(allowedMimes.includes(file.mimetype)){
-            cb(null, true);
-        } else{
-            cb(new Error("Invalid image  type!"));
-        }
-    }
-});
-
-//App Routes ####################
-app.get('/', async (req, res) => {
-    let imageDB = await Image.find({});
-    
-    for(i in imageDB){
-        let url = await getSignedUrl(client, new GetObjectCommand({ Bucket: process.env.BUCKET_NAME, Key: imageDB[i].key }), { expiresIn: 60 });
-        imageDB[i].url = url;
-    }
-    // console.log(imagesDB);
-    res.send(imageDB);
-});
-
-app.post('/post', upload.single('file'), async (req,res) => {
-    // console.log(req.file);
-    const key = `${Date.now()}-${req.file.originalname}`;
-    const params = {
-        Bucket: process.env.BUCKET_NAME,
-        ContentType: req.file.mimetype,
-        Body: req.file.buffer,
-        Key: key
-    };    
-    const imageToDB = await new Image({ 
-        name: req.file.originalname, 
-        key: key, 
-        mimetype: req.file.mimetype,
-        size: req.file.size
-    }).save();
-    // console.log(imageToDB);
-
-    const command = new PutObjectCommand(params);
-    await client.send(command);
-
-    res.send(key);
-});
-
-app.delete('/post/:id', async(req, res)=>{
-    const imgFromDB = await Image.findOne({ _id: req.params.id });
-    if(imgFromDB){
-        const params = {
-            Bucket: process.env.BUCKET_NAME,
-            Key: imgFromDB.key
-        }; 
-        const command = new DeleteObjectCommand(params);
-        await client.send(command);
-        const imageFromDB = await Image.deleteOne({ _id: req.params.id });
-        
-        res.send(imageFromDB);
-    }else {
-        res.status(500).send("Image not found!");
-    }
-
-});
+app.get('/', (req, res)=> res.json({response: "Api masterClin"}));
 
 app.listen(port, () => {
   console.log(`Example app listening on http://localhost:${port}/`)
